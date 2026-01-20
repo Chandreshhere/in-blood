@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx expo start:*)",
+      "Bash(pkill:*)",
+      "Bash(npx expo install:*)",
+      "Bash(npx expo prebuild:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill -9)",
+      "Bash(LANG=en_US.UTF-8 npx expo run:ios:*)"
+    ]
+  }
+}
