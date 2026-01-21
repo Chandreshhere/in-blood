@@ -7,6 +7,18 @@ export interface User {
   photos: string[];
   bio: string;
   interests: string[];
+  prompts?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  pronouns?: string;
+  orientation?: string;
+  languages?: string[];
+  tags?: string[];
+  stats?: {
+    rejections?: number;
+    likes?: number;
+  };
   location: {
     city: string;
     distance?: number;

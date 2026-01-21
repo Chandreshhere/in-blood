@@ -7,7 +7,9 @@
       "Bash(npx expo prebuild:*)",
       "Bash(lsof:*)",
       "Bash(xargs kill -9)",
-      "Bash(LANG=en_US.UTF-8 npx expo run:ios:*)"
+      "Bash(LANG=en_US.UTF-8 npx expo run:ios:*)",
+      "Bash(npm search:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

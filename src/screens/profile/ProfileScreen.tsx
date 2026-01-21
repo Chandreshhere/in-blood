@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,15 +12,17 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
-  FadeInDown,
   FadeInUp,
+  FadeInLeft,
+  FadeInRight,
   ZoomIn,
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  Easing,
   runOnJS,
   interpolate,
   Extrapolation,
@@ -35,7 +37,6 @@ import { useUser, useMatches } from '../../context';
 import { colors, fontSize, fontWeight, spacing, borderRadius } from '../../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const PROFILE_IMAGE_SIZE = 140;
 
 // Photo grid constants
 const PHOTO_GRID_COLUMNS = 3;
@@ -43,8 +44,8 @@ const PHOTO_GAP = 4;
 const PHOTO_SIZE = (SCREEN_WIDTH - spacing.lg * 2 - PHOTO_GAP * (PHOTO_GRID_COLUMNS - 1)) / PHOTO_GRID_COLUMNS;
 
 // Photo sheet constants
-const COLLAPSED_HEIGHT = 55; // Small peek - handle + title visible at bottom
-const EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.70; // 70% of screen when fully expanded
+const COLLAPSED_HEIGHT = 55;
+const EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.70;
 
 type RootStackParamList = {
   Profile: undefined;
@@ -54,8 +55,18 @@ type RootStackParamList = {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
+// Subscription Plan Type
+interface SubscriptionPlan {
+  name: string;
+  price: number;
+  period: string;
+  color: string;
+  badge?: string;
+  features: Array<{ text: string; included: boolean }>;
+}
+
 // Subscription Plans Data
-const SUBSCRIPTION_PLANS = {
+const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
   normal: {
     name: 'Basic',
     price: 0,
@@ -102,6 +113,43 @@ const SUBSCRIPTION_PLANS = {
       { text: 'Verified badge', included: true },
     ],
   },
+};
+
+// Simple Red Border Component (non-animated)
+const RedBorder: React.FC<{
+  children: React.ReactNode;
+  size: number;
+  borderWidth: number;
+}> = ({ children, size, borderWidth }) => {
+  const innerSize = size - borderWidth * 2;
+
+  return (
+    <View style={{
+      width: size,
+      height: size,
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}>
+      <View style={{
+        position: 'absolute',
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: '#FF0000',
+      }} />
+      <View style={{
+        width: innerSize,
+        height: innerSize,
+        borderRadius: innerSize / 2,
+        backgroundColor: colors.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+      }}>
+        {children}
+      </View>
+    </View>
+  );
 };
 
 // Plan Details Modal
@@ -216,7 +264,6 @@ const PhotoSheet: React.FC<{
   const scrollOffset = useSharedValue(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Wrapper functions for runOnJS
   const triggerHaptic = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
@@ -230,56 +277,39 @@ const PhotoSheet: React.FC<{
       contextY.value = translateY.value;
     })
     .onUpdate((event) => {
-      // If expanded and scrolled down, don't allow dragging down until scroll reaches top
       if (isExpanded.value && scrollOffset.value > 0 && event.translationY > 0) {
         return;
       }
-
       const newY = contextY.value + event.translationY;
-      // Clamp between collapsed and expanded
       translateY.value = Math.max(
         -(EXPANDED_HEIGHT - COLLAPSED_HEIGHT),
         Math.min(0, newY)
       );
     })
     .onEnd((event) => {
-      // If expanded and scrolled down, don't collapse
       if (isExpanded.value && scrollOffset.value > 5) {
         return;
       }
-
       const velocity = event.velocityY;
       const currentY = translateY.value;
       const midPoint = -(EXPANDED_HEIGHT - COLLAPSED_HEIGHT) / 2;
 
-      // Determine snap position based on velocity and position
       if (velocity < -500) {
-        // Fast swipe up - expand
         runOnJS(triggerHaptic)();
         isExpanded.value = true;
-        translateY.value = withTiming(-(EXPANDED_HEIGHT - COLLAPSED_HEIGHT), {
-          duration: 300,
-        });
+        translateY.value = withTiming(-(EXPANDED_HEIGHT - COLLAPSED_HEIGHT), { duration: 300 });
       } else if (velocity > 500) {
-        // Fast swipe down - collapse
         runOnJS(triggerHaptic)();
         isExpanded.value = false;
-        translateY.value = withTiming(0, {
-          duration: 300,
-        });
+        translateY.value = withTiming(0, { duration: 300 });
         runOnJS(resetScroll)();
       } else {
-        // Slow drag - snap to nearest
         if (currentY < midPoint) {
           isExpanded.value = true;
-          translateY.value = withTiming(-(EXPANDED_HEIGHT - COLLAPSED_HEIGHT), {
-            duration: 300,
-          });
+          translateY.value = withTiming(-(EXPANDED_HEIGHT - COLLAPSED_HEIGHT), { duration: 300 });
         } else {
           isExpanded.value = false;
-          translateY.value = withTiming(0, {
-            duration: 300,
-          });
+          translateY.value = withTiming(0, { duration: 300 });
           runOnJS(resetScroll)();
         }
       }
@@ -312,7 +342,6 @@ const PhotoSheet: React.FC<{
     pointerEvents: translateY.value < -50 ? 'auto' as const : 'none' as const,
   }));
 
-  // Fade out hint when expanding, fade in grid
   const hintOpacity = useAnimatedStyle(() => ({
     opacity: interpolate(
       translateY.value,
@@ -333,30 +362,20 @@ const PhotoSheet: React.FC<{
 
   return (
     <>
-      {/* Overlay when expanded */}
       <Animated.View style={[sheetStyles.overlay, overlayOpacity]} />
-
-      {/* Sheet */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[sheetStyles.container, sheetAnimatedStyle]}>
-          {/* Handle */}
           <View style={sheetStyles.handleContainer}>
             <Animated.View style={[sheetStyles.handle, handleIndicatorStyle]} />
           </View>
-
-          {/* Header */}
           <View style={sheetStyles.header}>
             <Text style={sheetStyles.title}>My Photos</Text>
             <Text style={sheetStyles.photoCount}>{photos.length} photos</Text>
           </View>
-
-          {/* Collapsed hint - swipe up indicator */}
           <Animated.View style={[sheetStyles.collapsedHint, hintOpacity]}>
             <Ionicons name="chevron-up" size={16} color={colors.textMuted} />
             <Text style={sheetStyles.collapsedHintText}>Swipe up to view</Text>
           </Animated.View>
-
-          {/* Photo Grid - Expanded */}
           <Animated.View style={[sheetStyles.expandedContainer, gridOpacity]}>
             <ScrollView
               ref={scrollViewRef}
@@ -410,14 +429,11 @@ const PhotoViewer: React.FC<{
         <Pressable style={viewerStyles.closeButton} onPress={onClose}>
           <Ionicons name="close" size={28} color={colors.text} />
         </Pressable>
-
         <Image
           source={{ uri: photos[currentIndex] }}
           style={viewerStyles.image}
           resizeMode="contain"
         />
-
-        {/* Photo indicators */}
         <View style={viewerStyles.indicators}>
           {photos.map((_, index) => (
             <Pressable
@@ -430,8 +446,6 @@ const PhotoViewer: React.FC<{
             />
           ))}
         </View>
-
-        {/* Navigation arrows */}
         {currentIndex > 0 && (
           <Pressable
             style={[viewerStyles.navButton, viewerStyles.navLeft]}
@@ -448,7 +462,6 @@ const PhotoViewer: React.FC<{
             <Ionicons name="chevron-forward" size={32} color={colors.text} />
           </Pressable>
         )}
-
         <Text style={viewerStyles.counter}>
           {currentIndex + 1} / {photos.length}
         </Text>
@@ -457,56 +470,19 @@ const PhotoViewer: React.FC<{
   );
 };
 
-// Section Card Component
-const SectionCard: React.FC<{
-  title: string;
+// Bento Box Component
+const BentoBox: React.FC<{
   children: React.ReactNode;
-  onEdit?: () => void;
+  style?: any;
   delay?: number;
-}> = ({ title, children, onEdit, delay = 0 }) => (
-  <Animated.View entering={FadeInUp.delay(delay)} style={styles.sectionCard}>
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {onEdit && (
-        <Pressable onPress={onEdit} style={styles.editSectionButton}>
-          <Ionicons name="pencil" size={16} color={colors.primary} />
-        </Pressable>
-      )}
-    </View>
+  entering?: any;
+}> = ({ children, style, delay = 0, entering }) => (
+  <Animated.View
+    entering={entering || FadeInUp.delay(delay).springify()}
+    style={[styles.bentoBox, style]}
+  >
     {children}
   </Animated.View>
-);
-
-// Prompt Card Component
-const PromptCard: React.FC<{
-  prompt: string;
-  answer: string;
-}> = ({ prompt, answer }) => (
-  <View style={styles.promptCard}>
-    <Text style={styles.promptQuestion}>{prompt}</Text>
-    <Text style={styles.promptAnswer}>{answer}</Text>
-  </View>
-);
-
-// Menu Item Component
-const MenuItem: React.FC<{
-  icon: string;
-  title: string;
-  subtitle?: string;
-  onPress: () => void;
-  iconBgColor?: string;
-  iconColor?: string;
-}> = ({ icon, title, subtitle, onPress, iconBgColor = 'rgba(255,255,255,0.1)', iconColor = colors.text }) => (
-  <Pressable style={styles.menuItem} onPress={onPress}>
-    <View style={[styles.menuIconBg, { backgroundColor: iconBgColor }]}>
-      <Ionicons name={icon as any} size={22} color={iconColor} />
-    </View>
-    <View style={styles.menuContent}>
-      <Text style={styles.menuTitle}>{title}</Text>
-      {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
-    </View>
-    <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-  </Pressable>
 );
 
 export const ProfileScreen: React.FC = () => {
@@ -517,7 +493,6 @@ export const ProfileScreen: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<string>('premium');
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
-  const insets = useSafeAreaInsets();
 
   const handleEditProfile = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -534,288 +509,335 @@ export const ProfileScreen: React.FC = () => {
     setShowPhotoViewer(true);
   }, []);
 
-  // Default user data if user is not set
   const displayUser = user || {
-    name: 'Rohan',
-    age: 23,
+    name: 'Arjun',
+    age: 25,
     photos: [
+      'https://images.unsplash.com/photo-1618077360395-f3068be8e001?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1615109398623-88346a601842?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1583195764036-6dc248ac07d9?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=600&fit=crop',
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop',
       'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1463453091185-61582044d556?w=400&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=400&h=600&fit=crop',
     ],
-    bio: 'Coffee enthusiast | Adventure seeker | Dog lover\n\nLooking for someone to explore new cafes and travel the world with. Let\'s create memories together!',
-    interests: ['Travel', 'Photography', 'Music', 'Fitness', 'Coffee', 'Movies', 'Art', 'Food'],
-    location: { city: 'Indore' },
+    bio: 'Chai lover | Adventure seeker | Dog parent\n\nLooking for someone to explore new cafes and travel India with.',
+    interests: ['Travel', 'Photography', 'Music', 'Fitness', 'Cricket', 'Movies', 'Art', 'Food'],
+    tags: ['Dom', 'Kinky', 'Leather', 'BDSM', 'Rope Play'],
+    location: { city: 'Mumbai' },
     verified: true,
     pronouns: 'He/Him',
     orientation: 'Gay',
   };
 
-  // Stats data
   const stats = {
     seductions: '2.4k',
     likes: matches.length || 33,
+    matches: 156,
+    superLikes: 12,
   };
 
-  // Mock prompts data
   const prompts = [
     { prompt: 'A life goal of mine', answer: 'To visit every continent and capture moments through my lens' },
-    { prompt: 'I\'m looking for', answer: 'Someone who laughs at my terrible jokes and enjoys spontaneous adventures' },
-    { prompt: 'My simple pleasures', answer: 'Morning coffee, sunset walks, and deep conversations' },
+    { prompt: "I'm looking for", answer: 'Someone who laughs at my terrible jokes and enjoys spontaneous adventures' },
   ];
 
-  // Mock opening move
-  const openingMove = 'Hey! I noticed you love travel too. What\'s the most unexpected place you\'ve ever visited?';
-
-  // Languages
   const languages = ['Hindi', 'English', 'Marathi'];
-
-  // Connected accounts
-  const connectedAccounts = [
-    { name: 'Spotify', connected: true, icon: 'musical-notes' },
-    { name: 'Instagram', connected: false, icon: 'logo-instagram' },
-  ];
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: COLLAPSED_HEIGHT + 120 }]}
-          bounces={true}
-        >
-          {/* Header with Edit Button */}
-          <Animated.View entering={FadeInDown.delay(100)} style={styles.header}>
-            <View style={styles.headerLeft} />
-            <Pressable style={styles.editButton} onPress={handleEditProfile}>
-              <Ionicons name="pencil-outline" size={22} color={colors.primary} />
-            </Pressable>
-          </Animated.View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: COLLAPSED_HEIGHT + 120 }]}
+        bounces={true}
+      >
+        {/* Header with actions */}
+        <SafeAreaView style={styles.headerActions} edges={['top']}>
+          <Pressable style={styles.headerActionButton} onPress={handleSettings}>
+            <Ionicons name="settings-outline" size={22} color={colors.text} />
+          </Pressable>
+          <Text style={styles.headerTitle}>My Profile</Text>
+          <Pressable style={styles.headerActionButton} onPress={handleEditProfile}>
+            <Ionicons name="pencil-outline" size={22} color={colors.text} />
+          </Pressable>
+        </SafeAreaView>
 
-          {/* Profile Section with Stats */}
-          <Animated.View entering={FadeIn.delay(200)} style={styles.profileSection}>
-            {/* Left Stats */}
-            <View style={styles.statContainer}>
-              <Text style={styles.statValue}>{stats.seductions}</Text>
-              <Text style={styles.statLabel}>SEDUCTIONS</Text>
+        {/* Profile Card with Rectangle and Lights */}
+        <Animated.View entering={FadeIn.duration(600)} style={styles.profileCardSection}>
+          {/* Stats Section with Single Rectangle */}
+          <View style={styles.statsContainer}>
+            {/* Left Ellipse Glow */}
+            <View style={styles.leftEllipse} />
+
+            {/* Right Ellipse Glow */}
+            <View style={styles.rightEllipse} />
+
+            {/* Background Rectangle */}
+            <View style={styles.statsRectangle} />
+
+            {/* Stats Content Layer */}
+            <View style={styles.statsContent}>
+              {/* Left Stats */}
+              <View style={styles.statsSide}>
+                <Text style={styles.statNumber}>{stats.seductions}</Text>
+                <Text style={styles.statLabel}>SEDUCTIONS</Text>
+              </View>
+
+              {/* Spacer for profile image */}
+              <View style={styles.statsImageSpacer} />
+
+              {/* Right Stats */}
+              <View style={styles.statsSide}>
+                <Text style={styles.statNumber}>{stats.likes}</Text>
+                <Text style={styles.statLabel}>LIKES</Text>
+              </View>
             </View>
 
-            {/* Center Profile Image */}
-            <View style={styles.profileImageContainer}>
-              {/* Gradient border wrapper - always red */}
-              <LinearGradient
-                colors={['#FF6B6B', '#E53935', '#C62828']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.gradientBorder}
-              >
-                <View style={styles.profileImageInner}>
-                  <Image
-                    source={{ uri: displayUser.photos[0] }}
-                    style={styles.profileImage}
-                    resizeMode="cover"
-                  />
-                </View>
-              </LinearGradient>
-              {/* Verification Badge */}
+            {/* Center Profile Image (overlapping) */}
+            <Pressable
+              style={styles.profileImageContainer}
+              onPress={() => handlePhotoPress(0)}
+            >
+              <RedBorder size={116} borderWidth={3}>
+                <Image
+                  source={{ uri: displayUser.photos[0] }}
+                  style={styles.statsProfileImage}
+                />
+              </RedBorder>
+            </Pressable>
+          </View>
+
+          {/* Name and details below */}
+          <View style={styles.profileInfoSection}>
+            <View style={styles.nameRow}>
+              <Text style={styles.profileName}>{displayUser.name}</Text>
+              <Text style={styles.profileAge}>, {displayUser.age}</Text>
               {displayUser.verified && (
                 <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark-circle" size={28} color="#1DA1F2" />
+                  <Ionicons name="checkmark-circle" size={24} color="#1DA1F2" />
                 </View>
               )}
             </View>
-
-            {/* Right Stats */}
-            <View style={styles.statContainer}>
-              <Text style={styles.statValue}>{stats.likes}</Text>
-              <Text style={styles.statLabel}>LIKES</Text>
+            <View style={styles.locationRow}>
+              <Ionicons name="pin" size={16} color={colors.primary} />
+              <Text style={styles.profileLocation}>{displayUser.location.city}</Text>
             </View>
-          </Animated.View>
 
-          {/* Name and Basic Info */}
-          <Animated.View entering={FadeInUp.delay(250)} style={styles.nameContainer}>
-            <Text style={styles.userName}>{displayUser.name}, {displayUser.age}</Text>
-            <Text style={styles.userLocation}>{displayUser.location.city}</Text>
-          </Animated.View>
+            {/* Matches count */}
+            <View style={styles.matchesRow}>
+              <Ionicons name="people" size={16} color="#000000" />
+              <Text style={styles.matchesText}>{stats.matches} Matches</Text>
+            </View>
+          </View>
+        </Animated.View>
 
-          {/* Verification Status */}
-          <Animated.View entering={FadeInUp.delay(300)} style={styles.verificationCard}>
-            <View style={styles.verificationContent}>
-              <View style={[styles.verificationIcon, displayUser.verified ? styles.verifiedIcon : styles.unverifiedIcon]}>
-                <Ionicons
-                  name={displayUser.verified ? "shield-checkmark" : "shield-outline"}
-                  size={24}
-                  color={displayUser.verified ? "#4CAF50" : colors.textMuted}
-                />
+        {/* Bento Grid Section */}
+        <View style={styles.bentoGrid}>
+          {/* Bio - Large card */}
+          <BentoBox style={styles.bentoBioCard} delay={450}>
+            <View style={styles.bentoHeader}>
+              <View style={[styles.bentoIconContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                <Ionicons name="person" size={18} color="#FFFFFF" />
               </View>
-              <View style={styles.verificationTextContainer}>
-                <Text style={styles.verificationTitle}>
-                  {displayUser.verified ? 'Verified Profile' : 'Not Verified'}
-                </Text>
-                <Text style={styles.verificationSubtitle}>
-                  {displayUser.verified ? 'Your identity has been confirmed' : 'Verify to get more matches'}
-                </Text>
+              <Text style={styles.bentoTitle}>About Me</Text>
+            </View>
+            <Text style={styles.bentoBioText}>{displayUser.bio}</Text>
+          </BentoBox>
+
+          {/* Two column layout */}
+          <View style={styles.bentoRow}>
+            {/* Pronouns card */}
+            <BentoBox style={styles.bentoSmallCard} delay={500} entering={FadeInLeft.delay(500).springify()}>
+              <View style={[styles.bentoIconContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                <Ionicons name="male-female" size={18} color="#FFFFFF" />
               </View>
-            </View>
-            {!displayUser.verified && (
-              <Pressable style={styles.verifyButton}>
-                <Text style={styles.verifyButtonText}>Verify Now</Text>
-              </Pressable>
-            )}
-          </Animated.View>
+              <Text style={styles.bentoSmallLabel}>Pronouns</Text>
+              <Text style={styles.bentoSmallValue}>{displayUser.pronouns || 'Not set'}</Text>
+            </BentoBox>
 
-          {/* About Me / Bio */}
-          <SectionCard title="About Me" onEdit={handleEditProfile} delay={350}>
-            <Text style={styles.bioText}>{displayUser.bio}</Text>
-          </SectionCard>
-
-          {/* Pronouns */}
-          <SectionCard title="Pronouns" onEdit={handleEditProfile} delay={400}>
-            <View style={styles.pronounsContainer}>
-              <View style={styles.pronounTag}>
-                <Ionicons name="person-outline" size={16} color={colors.primary} />
-                <Text style={styles.pronounText}>{displayUser.pronouns || 'Not specified'}</Text>
+            {/* Verified card */}
+            <BentoBox style={styles.bentoSmallCard} delay={550} entering={FadeInRight.delay(550).springify()}>
+              <View style={[styles.bentoIconContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
               </View>
-            </View>
-          </SectionCard>
+              <Text style={styles.bentoSmallLabel}>Status</Text>
+              <Text style={styles.bentoSmallValue}>{displayUser.verified ? 'Verified' : 'Not verified'}</Text>
+            </BentoBox>
+          </View>
 
-          {/* Interests */}
-          <SectionCard title="Interests" onEdit={handleEditProfile} delay={450}>
-            <View style={styles.interestsContainer}>
-              {displayUser.interests.map((interest, index) => (
-                <View key={index} style={styles.interestTag}>
-                  <Text style={styles.interestText}>{interest}</Text>
+          {/* Sexual Orientation - Display only */}
+          <BentoBox style={styles.bentoOrientationCard} delay={575}>
+            <View style={styles.bentoHeader}>
+              <View style={[styles.bentoIconContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                <Ionicons name="heart-circle" size={18} color="#FFFFFF" />
+              </View>
+              <Text style={styles.bentoTitle}>Sexual Orientation</Text>
+            </View>
+            <View style={styles.orientationDisplay}>
+              {displayUser.orientation ? (
+                <View style={styles.orientationChipSelected}>
+                  <Ionicons name="heart" size={16} color="#fff" style={{ marginRight: 6 }} />
+                  <Text style={styles.orientationChipTextSelected}>{displayUser.orientation}</Text>
                 </View>
-              ))}
-            </View>
-          </SectionCard>
-
-          {/* Prompts */}
-          <SectionCard title="My Prompts" onEdit={handleEditProfile} delay={500}>
-            {prompts.map((prompt, index) => (
-              <PromptCard key={index} prompt={prompt.prompt} answer={prompt.answer} />
-            ))}
-          </SectionCard>
-
-          {/* Opening Moves */}
-          <SectionCard title="Opening Move" onEdit={handleEditProfile} delay={550}>
-            <View style={styles.openingMoveCard}>
-              <Ionicons name="flash" size={20} color="#FFD700" style={styles.openingMoveIcon} />
-              <Text style={styles.openingMoveText}>{openingMove}</Text>
-            </View>
-          </SectionCard>
-
-          {/* Languages */}
-          <SectionCard title="Languages I Know" onEdit={handleEditProfile} delay={600}>
-            <View style={styles.languagesContainer}>
-              {languages.map((language, index) => (
-                <View key={index} style={styles.languageTag}>
-                  <Ionicons name="globe-outline" size={14} color={colors.primary} />
-                  <Text style={styles.languageText}>{language}</Text>
-                </View>
-              ))}
-            </View>
-          </SectionCard>
-
-          {/* Connected Accounts */}
-          <SectionCard title="Connected Accounts" onEdit={handleEditProfile} delay={650}>
-            {connectedAccounts.map((account, index) => (
-              <View key={index} style={styles.connectedAccountRow}>
-                <View style={styles.connectedAccountLeft}>
-                  <View style={[styles.accountIconBg, account.connected && styles.accountIconBgActive]}>
-                    <Ionicons name={account.icon as any} size={20} color={account.connected ? colors.text : colors.textMuted} />
-                  </View>
-                  <Text style={styles.accountName}>{account.name}</Text>
-                </View>
-                <Pressable style={[styles.connectionButton, account.connected && styles.connectionButtonActive]}>
-                  <Text style={[styles.connectionButtonText, account.connected && styles.connectionButtonTextActive]}>
-                    {account.connected ? 'Connected' : 'Connect'}
-                  </Text>
+              ) : (
+                <Pressable
+                  style={styles.orientationAddButton}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    navigation.navigate('EditProfile');
+                  }}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+                  <Text style={styles.orientationAddText}>Add your orientation</Text>
                 </Pressable>
+              )}
+            </View>
+          </BentoBox>
+
+          {/* Interests - Full width with horizontal scroll feel */}
+          <BentoBox style={styles.bentoInterestsCard} delay={600}>
+            <View style={styles.bentoHeader}>
+              <View style={[styles.bentoIconContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+              </View>
+              <Text style={styles.bentoTitle}>Interests</Text>
+            </View>
+            <View style={styles.interestsWrap}>
+              {displayUser.interests.map((interest, index) => (
+                <Animated.View
+                  key={index}
+                  entering={FadeInUp.delay(650 + index * 50).springify()}
+                  style={styles.interestChip}
+                >
+                  <Text style={styles.interestChipText}>{interest}</Text>
+                </Animated.View>
+              ))}
+            </View>
+          </BentoBox>
+
+          {/* Tags - if available */}
+          {displayUser.tags && displayUser.tags.length > 0 && (
+            <BentoBox style={styles.bentoTagsCard} delay={650}>
+              <View style={styles.bentoHeader}>
+                <View style={[styles.bentoIconContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                  <Ionicons name="pricetags" size={18} color="#FFFFFF" />
+                </View>
+                <Text style={styles.bentoTitle}>Tags</Text>
+              </View>
+              <View style={styles.tagsWrap}>
+                {displayUser.tags.map((tag, index) => (
+                  <Animated.View
+                    key={index}
+                    entering={FadeInUp.delay(700 + index * 50).springify()}
+                    style={styles.tagChip}
+                  >
+                    <Text style={styles.tagChipText}>{tag}</Text>
+                  </Animated.View>
+                ))}
+              </View>
+            </BentoBox>
+          )}
+
+          {/* Prompts - Stacked cards */}
+          <BentoBox style={styles.bentoPromptsCard} delay={700}>
+            <View style={styles.bentoHeader}>
+              <View style={[styles.bentoIconContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                <Ionicons name="chatbubble-ellipses" size={18} color="#FFFFFF" />
+              </View>
+              <Text style={styles.bentoTitle}>My Prompts</Text>
+            </View>
+            {prompts.map((prompt, index) => (
+              <View key={index} style={styles.promptItem}>
+                <Text style={styles.promptQuestion}>{prompt.prompt}</Text>
+                <Text style={styles.promptAnswer}>{prompt.answer}</Text>
               </View>
             ))}
-          </SectionCard>
+          </BentoBox>
 
-          {/* Premium Banner */}
-          <Animated.View entering={FadeInUp.delay(700)} style={styles.premiumBannerContainer}>
-            <Pressable
-              style={styles.premiumBanner}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setShowPlanModal(true);
-              }}
+          {/* Languages - Horizontal */}
+          <BentoBox style={styles.bentoLanguagesCard} delay={750}>
+            <View style={styles.bentoHeader}>
+              <View style={[styles.bentoIconContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                <Ionicons name="globe" size={18} color="#FFFFFF" />
+              </View>
+              <Text style={styles.bentoTitle}>Languages</Text>
+            </View>
+            <View style={styles.languagesRow}>
+              {languages.map((lang, index) => (
+                <View key={index} style={styles.languageChip}>
+                  <Text style={styles.languageChipText}>{lang}</Text>
+                </View>
+              ))}
+            </View>
+          </BentoBox>
+        </View>
+
+        {/* Premium CTA - Special card */}
+        <Animated.View entering={FadeInUp.delay(800).springify()} style={styles.premiumSection}>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setShowPlanModal(true);
+            }}
+          >
+            <LinearGradient
+              colors={['rgba(229, 57, 53, 0.3)', 'rgba(183, 28, 28, 0.2)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.premiumCard}
             >
-              <LinearGradient
-                colors={['rgba(229, 57, 53, 0.2)', 'rgba(229, 57, 53, 0.1)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.premiumGradient}
-              >
-                <View style={styles.premiumIconBg}>
-                  <Ionicons name="diamond" size={20} color={colors.primary} />
-                </View>
-                <View style={styles.premiumTextContent}>
-                  <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
-                  <Text style={styles.premiumSubtitle}>See who likes you & more</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.primary} />
-              </LinearGradient>
+              <View style={styles.premiumIconBg}>
+                <Ionicons name="diamond" size={28} color={colors.primary} />
+              </View>
+              <View style={styles.premiumContent}>
+                <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
+                <Text style={styles.premiumSubtitle}>Unlock unlimited likes, see who likes you & more</Text>
+              </View>
+              <View style={styles.premiumArrow}>
+                <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+              </View>
+            </LinearGradient>
+          </Pressable>
+        </Animated.View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsSection}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActionsGrid}>
+            <Pressable style={styles.quickActionCard} onPress={() => Alert.alert('Invite Friends')}>
+              <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                <Ionicons name="gift" size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.quickActionText} numberOfLines={1}>Invite</Text>
             </Pressable>
-          </Animated.View>
+            <Pressable style={styles.quickActionCard} onPress={() => Alert.alert('Safety Tips')}>
+              <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                <Ionicons name="shield-checkmark" size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.quickActionText} numberOfLines={1}>Safety</Text>
+            </Pressable>
+            <Pressable style={styles.quickActionCard} onPress={() => Alert.alert('Help & Support')}>
+              <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                <Ionicons name="help-circle" size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.quickActionText} numberOfLines={1}>Help</Text>
+            </Pressable>
+            <Pressable style={styles.quickActionCard} onPress={handleSettings}>
+              <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                <Ionicons name="settings" size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.quickActionText} numberOfLines={1}>Settings</Text>
+            </Pressable>
+          </View>
+        </View>
 
-          {/* More Options */}
-          <Animated.View entering={FadeInUp.delay(750)} style={styles.moreSection}>
-            <Text style={styles.moreSectionTitle}>More</Text>
+        {/* Footer */}
+        <Animated.View entering={FadeIn.delay(900)} style={styles.footer}>
+          <Text style={styles.footerText}>InBlood v1.0.0</Text>
+          <Text style={styles.footerSubtext}>Made with love in India</Text>
+        </Animated.View>
+      </ScrollView>
 
-            <MenuItem
-              icon="gift-outline"
-              title="Invite Friends"
-              subtitle="Get free premium days"
-              iconBgColor="rgba(76, 175, 80, 0.15)"
-              iconColor="#4CAF50"
-              onPress={() => Alert.alert('Invite Friends', 'Share your referral link!')}
-            />
-
-            <MenuItem
-              icon="shield-checkmark-outline"
-              title="Safety Center"
-              subtitle="Tips for safe dating"
-              iconBgColor="rgba(255, 152, 0, 0.15)"
-              iconColor="#FF9800"
-              onPress={() => Alert.alert('Safety Tips', 'Always meet in public places.')}
-            />
-
-            <MenuItem
-              icon="help-circle-outline"
-              title="Help & Support"
-              subtitle="Get help from our team"
-              iconBgColor="rgba(33, 150, 243, 0.15)"
-              iconColor="#2196F3"
-              onPress={() => Alert.alert('Help', 'Contact support@inblood.com')}
-            />
-
-            <MenuItem
-              icon="settings-outline"
-              title="Settings"
-              subtitle="Account & preferences"
-              iconBgColor="rgba(255,255,255,0.1)"
-              iconColor={colors.text}
-              onPress={handleSettings}
-            />
-          </Animated.View>
-
-          {/* Footer */}
-          <Animated.View entering={FadeIn.delay(800)} style={styles.footer}>
-            <Text style={styles.footerText}>InBlood v1.0.0</Text>
-            <Text style={styles.footerSubtext}>Made with love in India</Text>
-          </Animated.View>
-        </ScrollView>
-      </SafeAreaView>
-
-      {/* Full Screen Photo Viewer */}
+      {/* Photo Viewer Modal */}
       <PhotoViewer
         visible={showPhotoViewer}
         photos={displayUser.photos}
@@ -823,7 +845,7 @@ export const ProfileScreen: React.FC = () => {
         onClose={() => setShowPhotoViewer(false)}
       />
 
-      {/* Plan Details Modal */}
+      {/* Plan Modal */}
       <PlanDetailsModal
         visible={showPlanModal}
         onClose={() => setShowPlanModal(false)}
@@ -831,7 +853,7 @@ export const ProfileScreen: React.FC = () => {
         onSelectPlan={setSelectedPlan}
       />
 
-      {/* Draggable Photo Sheet */}
+      {/* Photo Sheet */}
       <PhotoSheet
         photos={displayUser.photos}
         onPhotoPress={handlePhotoPress}
@@ -890,12 +912,8 @@ const viewerStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  navLeft: {
-    left: 16,
-  },
-  navRight: {
-    right: 16,
-  },
+  navLeft: { left: 16 },
+  navRight: { right: 16 },
   counter: {
     position: 'absolute',
     bottom: 60,
@@ -904,7 +922,6 @@ const viewerStyles = StyleSheet.create({
   },
 });
 
-// Tab bar offset - position sheet just above tab bar (tab bar height 70 + bottom margin 24)
 const TAB_BAR_OFFSET = 94;
 
 const sheetStyles = StyleSheet.create({
@@ -968,9 +985,7 @@ const sheetStyles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  scrollView: {
-    flex: 1,
-  },
+  scrollView: { flex: 1 },
   gridContainer: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
@@ -1033,9 +1048,7 @@ const modalStyles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
-  plansScroll: {
-    maxHeight: 400,
-  },
+  plansScroll: { maxHeight: 400 },
   planCard: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.xl,
@@ -1060,9 +1073,7 @@ const modalStyles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     color: colors.background,
   },
-  planHeader: {
-    marginBottom: spacing.md,
-  },
+  planHeader: { marginBottom: spacing.md },
   planName: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
@@ -1087,9 +1098,7 @@ const modalStyles = StyleSheet.create({
     color: colors.textSecondary,
     marginLeft: 4,
   },
-  featuresList: {
-    gap: spacing.sm,
-  },
+  featuresList: { gap: spacing.sm },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1128,185 +1137,292 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  safeArea: {
-    flex: 1,
-  },
   scrollContent: {
     paddingBottom: 120,
   },
-  header: {
+  // Header Actions
+  headerActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingVertical: spacing.md,
   },
-  headerLeft: {
-    width: 44,
-  },
-  editButton: {
+  headerActionButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(229, 57, 53, 0.15)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(229, 57, 53, 0.3)',
   },
-  // Profile Section
-  profileSection: {
+  headerTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+  },
+  // Profile Card Section with Rectangle and Lights
+  profileCardSection: {
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.md,
+  },
+  statsContainer: {
+    position: 'relative',
+    height: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  leftEllipseContainer: {
+    position: 'absolute',
+    width: 100,
+    height: 70,
+    left: 10,
+    zIndex: -1,
+    overflow: 'hidden',
+    borderRadius: 50,
+    shadowColor: '#FBBC05',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 30,
+  },
+  leftEllipseInner: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#FFD54F',
+    opacity: 0.9,
+  },
+  rightEllipseContainer: {
+    position: 'absolute',
+    width: 100,
+    height: 70,
+    right: 10,
+    zIndex: -1,
+    overflow: 'hidden',
+    borderRadius: 50,
+    shadowColor: '#E53935',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 30,
+  },
+  rightEllipseInner: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#FF5252',
+    opacity: 0.9,
+  },
+  ellipseBlur: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  leftEllipse: {
+    position: 'absolute',
+    width: 90,
+    height: 70,
+    left: 30,
+    borderRadius: 45,
+    backgroundColor: '#FF9800',
+    opacity: 1,
+    zIndex: -1,
+    shadowColor: '#FF9800',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 60,
+    elevation: 30,
+  },
+  rightEllipse: {
+    position: 'absolute',
+    width: 90,
+    height: 70,
+    right: 30,
+    borderRadius: 45,
+    backgroundColor: '#D32F2F',
+    opacity: 1,
+    zIndex: -1,
+    shadowColor: '#D32F2F',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 60,
+    elevation: 30,
+  },
+  statsRectangle: {
+    width: SCREEN_WIDTH - spacing.lg * 2,
+    height: 90,
+    borderRadius: 45,
+    position: 'absolute',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#0D0D0D',
+    zIndex: 0,
+  },
+  statsContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: spacing.xl,
+    zIndex: 1,
   },
-  statContainer: {
-    flex: 1,
+  statsSide: {
     alignItems: 'center',
+    flex: 1,
   },
-  statValue: {
-    fontSize: fontSize.xxl,
+  statNumber: {
+    fontSize: 24,
     fontWeight: fontWeight.bold,
     color: colors.text,
   },
   statLabel: {
     fontSize: 10,
+    fontWeight: fontWeight.medium,
     color: colors.textMuted,
     marginTop: 4,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+  },
+  statsImageSpacer: {
+    width: 100,
   },
   profileImageContainer: {
-    alignItems: 'center',
-    marginHorizontal: spacing.md,
-    position: 'relative',
+    position: 'absolute',
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    zIndex: 10,
   },
-  profileImageWrapper: {
-    width: PROFILE_IMAGE_SIZE,
-    height: PROFILE_IMAGE_SIZE,
-    borderRadius: PROFILE_IMAGE_SIZE / 2,
-    borderWidth: 3,
-    borderColor: colors.primary,
-    overflow: 'hidden',
+  statsProfileImage: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
   },
-  gradientBorder: {
-    width: PROFILE_IMAGE_SIZE + 6,
-    height: PROFILE_IMAGE_SIZE + 6,
-    borderRadius: (PROFILE_IMAGE_SIZE + 6) / 2,
+  profileImageGradientBorder: {
+    width: 116,
+    height: 116,
+    borderRadius: 58,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#FF0000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 15,
   },
   profileImageInner: {
-    width: PROFILE_IMAGE_SIZE,
-    height: PROFILE_IMAGE_SIZE,
-    borderRadius: PROFILE_IMAGE_SIZE / 2,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     overflow: 'hidden',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-  },
-  verifiedBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
     backgroundColor: colors.background,
-    borderRadius: 14,
-    padding: 2,
   },
-  // Name Container
-  nameContainer: {
+  photoNavDots: {
+    position: 'absolute',
+    bottom: -20,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  photoNavDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  photoNavDotActive: {
+    backgroundColor: colors.primary,
+    width: 18,
+  },
+  // Profile Info Section
+  profileInfoSection: {
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginTop: spacing.sm,
   },
-  userName: {
-    fontSize: fontSize.xxl,
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileName: {
+    fontSize: 28,
     fontWeight: fontWeight.bold,
     color: colors.text,
   },
-  userLocation: {
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+  profileAge: {
+    fontSize: 26,
+    fontWeight: fontWeight.medium,
+    color: colors.text,
   },
-  // Verification Card
-  verificationCard: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+  verifiedBadge: {
+    marginLeft: spacing.sm,
   },
-  verificationContent: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: spacing.xs,
+    gap: 4,
   },
-  verificationIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  profileLocation: {
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  matchesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+  matchesText: {
+    fontSize: fontSize.sm,
+    color: '#000000',
+    fontWeight: fontWeight.medium,
+  },
+  // Keep old styles for compatibility
+  glassStatCard: {
+    flex: 1,
+    backgroundColor: 'rgba(21, 21, 21, 0.9)',
+    borderRadius: borderRadius.xl,
+    padding: spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  glassStatIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: spacing.xs,
   },
-  verifiedIcon: {
-    backgroundColor: 'rgba(76, 175, 80, 0.15)',
-  },
-  unverifiedIcon: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  verificationTextContainer: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  verificationTitle: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
+  glassStatValue: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
     color: colors.text,
   },
-  verificationSubtitle: {
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
+  glassStatLabel: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
     marginTop: 2,
   },
-  verifyButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.sm,
+  // Bento Grid
+  bentoGrid: {
     paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.full,
-    alignSelf: 'flex-start',
-    marginTop: spacing.md,
+    marginTop: spacing.xl,
+    gap: spacing.md,
   },
-  verifyButtonText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold,
-    color: colors.text,
-  },
-  // Section Card
-  sectionCard: {
-    backgroundColor: colors.card,
+  bentoBox: {
+    backgroundColor: '#0D0D0D',
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  sectionHeader: {
+  bentoHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.md,
+    gap: spacing.sm,
   },
-  sectionTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
-    color: colors.text,
-  },
-  editSectionButton: {
+  bentoIconContainer: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -1314,51 +1430,114 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Bio
-  bioText: {
+  bentoTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+  },
+  bentoBioCard: {},
+  bentoBioText: {
     fontSize: fontSize.md,
     color: colors.textSecondary,
     lineHeight: 24,
   },
-  // Pronouns
-  pronounsContainer: {
+  bentoRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  bentoSmallCard: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+  },
+  bentoSmallLabel: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
+  bentoSmallValue: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+    marginTop: 4,
+  },
+  bentoInterestsCard: {},
+  interestsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  pronounTag: {
+  interestChip: {
+    backgroundColor: 'rgba(229, 57, 53, 0.15)',
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.full,
+  },
+  interestChipText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontWeight: fontWeight.medium,
+  },
+  bentoTagsCard: {},
+  tagsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  tagChip: {
+    backgroundColor: colors.primary + '20',
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  tagChipText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
+  },
+  bentoOrientationCard: {
+    marginBottom: spacing.md,
+  },
+  orientationDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(229, 57, 53, 0.15)',
-    paddingVertical: spacing.xs + 2,
+  },
+  orientationChipSelected: {
+    backgroundColor: 'rgba(255, 152, 0, 0.3)',
+    borderColor: '#FF9800',
+    borderWidth: 1,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: borderRadius.full,
-    gap: spacing.xs,
-  },
-  pronounText: {
-    fontSize: fontSize.sm,
-    color: colors.primary,
-    fontWeight: fontWeight.medium,
-  },
-  // Interests
-  interestsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+    alignItems: 'center',
   },
-  interestTag: {
-    backgroundColor: 'rgba(229, 57, 53, 0.15)',
-    paddingVertical: spacing.xs + 2,
+  orientationChipTextSelected: {
+    color: '#fff',
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+  },
+  orientationAddButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 152, 0, 0.3)',
+    borderStyle: 'dashed',
   },
-  interestText: {
+  orientationAddText: {
+    color: '#FF9800',
     fontSize: fontSize.sm,
-    color: colors.primary,
     fontWeight: fontWeight.medium,
+    marginLeft: spacing.xs,
   },
-  // Prompts
-  promptCard: {
+  bentoPromptsCard: {},
+  promptItem: {
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: borderRadius.lg,
     padding: spacing.md,
@@ -1375,112 +1554,60 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 22,
   },
-  // Opening Move
-  openingMoveCard: {
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
+  bentoLanguagesCard: {},
+  languagesRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.2)',
-  },
-  openingMoveIcon: {
-    marginRight: spacing.sm,
-    marginTop: 2,
-  },
-  openingMoveText: {
-    flex: 1,
-    fontSize: fontSize.md,
-    color: colors.text,
-    lineHeight: 22,
-  },
-  // Languages
-  languagesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  languageTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+  languageChip: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingVertical: spacing.xs + 2,
     paddingHorizontal: spacing.md,
     borderRadius: borderRadius.full,
-    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
-  languageText: {
+  languageChipText: {
     fontSize: fontSize.sm,
-    color: colors.text,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: fontWeight.medium,
   },
-  // Connected Accounts
-  connectedAccountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
-  },
-  connectedAccountLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  accountIconBg: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  accountIconBgActive: {
-    backgroundColor: colors.primary,
-  },
-  accountName: {
-    fontSize: fontSize.md,
-    color: colors.text,
-    fontWeight: fontWeight.medium,
-  },
-  connectionButton: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  connectionButtonActive: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-  },
-  connectionButtonText: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-    fontWeight: fontWeight.medium,
-  },
-  connectionButtonTextActive: {
-    color: '#4CAF50',
-  },
-  // Premium Banner
-  premiumBannerContainer: {
+  // Premium Section
+  premiumSection: {
     paddingHorizontal: spacing.lg,
-    marginTop: spacing.sm,
+    marginTop: spacing.xl,
   },
-  premiumBanner: {
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-  },
-  premiumGradient: {
+  premiumCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    padding: spacing.lg,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: 'rgba(229, 57, 53, 0.3)',
   },
   premiumIconBg: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(229, 57, 53, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumContent: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  premiumTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+  },
+  premiumSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  premiumArrow: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -1488,62 +1615,60 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  premiumTextContent: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  premiumTitle: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.text,
-  },
-  premiumSubtitle: {
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  // More Section
-  moreSection: {
+  // Quick Actions
+  quickActionsSection: {
     paddingHorizontal: spacing.lg,
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
-  moreSectionTitle: {
+  sectionTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.bold,
     color: colors.text,
     marginBottom: spacing.md,
   },
-  // Menu Item
-  menuItem: {
+  quickActionsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
+    gap: spacing.md,
+  },
+  quickActionCard: {
+    flex: 1,
+    backgroundColor: '#0D0D0D',
     borderRadius: borderRadius.xl,
     padding: spacing.md,
-    marginBottom: spacing.sm,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  menuIconBg: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: spacing.sm,
   },
-  menuContent: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  menuTitle: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.text,
-  },
-  menuSubtitle: {
+  quickActionText: {
     fontSize: fontSize.xs,
     color: colors.textSecondary,
-    marginTop: 2,
+    fontWeight: fontWeight.medium,
+  },
+  // Floating Edit Button
+  floatingEditButton: {
+    position: 'absolute',
+    bottom: COLLAPSED_HEIGHT + 100,
+    right: spacing.lg,
+    zIndex: 100,
+  },
+  floatingEditPressable: {
+    borderRadius: 28,
+    overflow: 'hidden',
+  },
+  floatingEditGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   // Footer
   footer: {

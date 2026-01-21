@@ -39,22 +39,19 @@ export const fontWeight = {
 };
 
 // Font Families
-// Primary: Satoshi - for headings, names, CTAs (modern, confident, premium)
-// Secondary: Inter - for body text, labels, descriptions (ultra-readable)
+// Geist - Modern, clean typography from Vercel
 export const fontFamily = {
-  // Satoshi - Primary (Headings, Names, CTAs)
-  satoshi: {
-    regular: 'Satoshi-Regular',
-    medium: 'Satoshi-Medium',
-    bold: 'Satoshi-Bold',
-    black: 'Satoshi-Black',
-  },
-  // Inter - Secondary (Body text, labels)
-  inter: {
-    regular: 'Inter-Regular',
-    medium: 'Inter-Medium',
-    semibold: 'Inter-SemiBold',
-    bold: 'Inter-Bold',
+  // Geist - Primary font for all text
+  geist: {
+    thin: 'Geist_100Thin',
+    extraLight: 'Geist_200ExtraLight',
+    light: 'Geist_300Light',
+    regular: 'Geist_400Regular',
+    medium: 'Geist_500Medium',
+    semibold: 'Geist_600SemiBold',
+    bold: 'Geist_700Bold',
+    extraBold: 'Geist_800ExtraBold',
+    black: 'Geist_900Black',
   },
   // Fallback to system fonts if custom fonts not loaded
   system: {
@@ -68,73 +65,73 @@ export const fontFamily = {
 export const typography = {
   // Display - Large headings like "It's a Match!"
   display: {
-    fontFamily: fontFamily.satoshi.black,
+    fontFamily: fontFamily.geist.black,
     fontSize: fontSize.display,
     fontWeight: fontWeight.black,
     letterSpacing: -1,
   },
   // Heading 1 - Screen titles
   h1: {
-    fontFamily: fontFamily.satoshi.bold,
+    fontFamily: fontFamily.geist.bold,
     fontSize: fontSize.xxxl,
     fontWeight: fontWeight.bold,
     letterSpacing: -0.5,
   },
   // Heading 2 - Section titles
   h2: {
-    fontFamily: fontFamily.satoshi.bold,
+    fontFamily: fontFamily.geist.bold,
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
   },
   // Heading 3 - Card titles, Names
   h3: {
-    fontFamily: fontFamily.satoshi.semibold,
+    fontFamily: fontFamily.geist.semibold,
     fontSize: fontSize.xl,
     fontWeight: fontWeight.semibold,
   },
   // Body Large - Important text
   bodyLarge: {
-    fontFamily: fontFamily.inter.regular,
+    fontFamily: fontFamily.geist.regular,
     fontSize: fontSize.lg,
     fontWeight: fontWeight.regular,
     lineHeight: 24,
   },
   // Body - Regular text
   body: {
-    fontFamily: fontFamily.inter.regular,
+    fontFamily: fontFamily.geist.regular,
     fontSize: fontSize.md,
     fontWeight: fontWeight.regular,
     lineHeight: 22,
   },
   // Body Small - Secondary text
   bodySmall: {
-    fontFamily: fontFamily.inter.regular,
+    fontFamily: fontFamily.geist.regular,
     fontSize: fontSize.sm,
     fontWeight: fontWeight.regular,
     lineHeight: 18,
   },
   // Label - Form labels, tags
   label: {
-    fontFamily: fontFamily.inter.medium,
+    fontFamily: fontFamily.geist.medium,
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium,
   },
   // Caption - Small text, timestamps
   caption: {
-    fontFamily: fontFamily.inter.regular,
+    fontFamily: fontFamily.geist.regular,
     fontSize: fontSize.xs,
     fontWeight: fontWeight.regular,
   },
   // Button - CTA buttons
   button: {
-    fontFamily: fontFamily.satoshi.bold,
+    fontFamily: fontFamily.geist.bold,
     fontSize: fontSize.lg,
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
   },
   // Button Small - Secondary buttons
   buttonSmall: {
-    fontFamily: fontFamily.satoshi.semibold,
+    fontFamily: fontFamily.geist.semibold,
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
   },

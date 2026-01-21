@@ -42,13 +42,13 @@ import { colors, fontSize, fontWeight, spacing, borderRadius } from '../../theme
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Couple images for the background slideshow
+// Couple images for the background slideshow - Indian couples
 const COUPLE_IMAGES = [
-  'https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?w=800&h=1200&fit=crop',
-  'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=800&h=1200&fit=crop',
-  'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=800&h=1200&fit=crop',
-  'https://images.unsplash.com/photo-1545389336-cf090694435e?w=800&h=1200&fit=crop',
-  'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=800&h=1200&fit=crop',
+  'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=800&h=1200&fit=crop', // Indian couple
+  'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=800&h=1200&fit=crop', // Indian wedding
+  'https://images.unsplash.com/photo-1604017011826-d3b4c23f8914?w=800&h=1200&fit=crop', // Indian couple
+  'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&h=1200&fit=crop', // Couple silhouette
+  'https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?w=800&h=1200&fit=crop', // Couple
 ];
 
 type AuthStackParamList = {

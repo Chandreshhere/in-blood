@@ -660,9 +660,13 @@ export const DiscoverScreen: React.FC = () => {
           )}
         </Animated.View>
 
-        {/* Card Stack with shadow backdrop */}
-        <View style={styles.cardContainer}>
-          <View style={styles.cardShadowBackdrop} />
+        {/* Card Stack */}
+        <Animated.View
+          entering={FadeIn.delay(150).springify()}
+          style={styles.cardContainer}
+        >
+          {/* Ambient glow behind cards */}
+          <View style={styles.ambientGlow} />
 
           {profiles.slice(0, 3).reverse().map((profile, index) => (
             <SwipeCard
@@ -673,7 +677,7 @@ export const DiscoverScreen: React.FC = () => {
               onPress={() => handleProfilePress(profile)}
             />
           ))}
-        </View>
+        </Animated.View>
 
         {/* Modern Action Buttons */}
         <Animated.View entering={SlideInDown.delay(300).springify()} style={styles.actionsContainer}>
@@ -974,7 +978,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: colors.card,
+    backgroundColor: '#2A2A2A',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -995,7 +999,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: colors.card,
+    backgroundColor: '#2A2A2A',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -1039,15 +1043,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: -spacing.sm,
   },
-  cardShadowBackdrop: {
+  ambientGlow: {
     position: 'absolute',
-    width: CARD_WIDTH - 40,
-    height: CARD_HEIGHT - 20,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.xxl,
-    opacity: 0.3,
+    width: CARD_WIDTH + 40,
+    height: CARD_HEIGHT + 40,
+    borderRadius: CARD_WIDTH / 2,
+    backgroundColor: colors.primary,
+    opacity: 0.06,
     top: '50%',
-    marginTop: -(CARD_HEIGHT - 20) / 2 + 15,
+    marginTop: -(CARD_HEIGHT + 40) / 2,
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -1157,7 +1161,7 @@ const styles = StyleSheet.create({
 const filterStyles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: '#000000',
     justifyContent: 'flex-end',
   },
   container: {

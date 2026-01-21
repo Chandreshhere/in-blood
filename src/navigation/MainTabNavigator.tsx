@@ -78,6 +78,7 @@ const TabIcon: React.FC<TabIconProps> = ({ name, focused, badge, isDarkTheme = f
   );
 };
 
+
 // Center Swipe Button Component - navigates to swipe screen
 const CenterTabIcon: React.FC<{ focused: boolean }> = ({ focused }) => {
   const scale = useSharedValue(1);
@@ -213,13 +214,13 @@ export const MainTabNavigator: React.FC = () => {
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 16,
     left: 20,
     right: 20,
     height: 70,
     borderRadius: 35,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
     paddingHorizontal: spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   tabBarDark: {
-    backgroundColor: 'rgba(21, 21, 21, 0.95)',
+    backgroundColor: '#000000',
   },
   tabBarLabel: {
     fontSize: fontSize.xs,

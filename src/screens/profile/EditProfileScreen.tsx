@@ -42,6 +42,14 @@ const PROFILE_PROMPTS = [
   { id: 'guilty_pleasure', title: 'My guilty pleasure is...', category: 'more_about_you' },
   { id: 'green_flag', title: 'A green flag I look for...', category: 'more_about_you' },
   { id: 'hottest_take', title: 'My hottest take...', category: 'more_about_you' },
+  { id: 'young_mischievous', title: 'How young and mischievous are you?', category: 'more_about_you' },
+  { id: 'secret_fantasy', title: 'My secret fantasy is...', category: 'more_about_you' },
+  { id: 'turn_ons', title: 'What really turns me on...', category: 'more_about_you' },
+  { id: 'wild_side', title: 'My wild side comes out when...', category: 'more_about_you' },
+  { id: 'bedroom_vibe', title: 'In the bedroom, I am...', category: 'more_about_you' },
+  { id: 'naughty_confession', title: 'A naughty confession...', category: 'more_about_you' },
+  { id: 'seduction_style', title: 'My seduction style is...', category: 'more_about_you' },
+  { id: 'kinkiest_thing', title: 'The kinkiest thing about me...', category: 'more_about_you' },
 ];
 
 const OPENING_MOVES = [
@@ -56,6 +64,57 @@ const LANGUAGES = [
   'English', 'Hindi', 'Spanish', 'French', 'German', 'Mandarin', 'Japanese',
   'Korean', 'Portuguese', 'Italian', 'Arabic', 'Russian', 'Tamil', 'Telugu',
   'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Kannada', 'Malayalam',
+];
+
+const SEXUAL_ORIENTATIONS = [
+  'Straight', 'Gay', 'Lesbian', 'Bisexual', 'Pansexual',
+  'Asexual', 'Demisexual', 'Queer', 'Questioning',
+  'Omnisexual', 'Polysexual', 'Homoflexible', 'Heteroflexible',
+  'Androsexual', 'Gynesexual', 'Skoliosexual', 'Sapiosexual',
+  'Aromantic', 'Graysexual', 'Fluid',
+];
+
+const FETISH_TAGS = [
+  { id: 'dom', label: 'Dom', category: 'power' },
+  { id: 'sub', label: 'Sub', category: 'power' },
+  { id: 'switch', label: 'Switch', category: 'power' },
+  { id: 'bdsm', label: 'BDSM', category: 'kink' },
+  { id: 'kinky', label: 'Kinky', category: 'kink' },
+  { id: 'rope_play', label: 'Rope Play', category: 'kink' },
+  { id: 'shibari', label: 'Shibari', category: 'kink' },
+  { id: 'leather', label: 'Leather', category: 'kink' },
+  { id: 'latex', label: 'Latex', category: 'kink' },
+  { id: 'pup_play', label: 'Pup Play', category: 'roleplay' },
+  { id: 'pet_play', label: 'Pet Play', category: 'roleplay' },
+  { id: 'daddy', label: 'Daddy', category: 'roleplay' },
+  { id: 'mommy', label: 'Mommy', category: 'roleplay' },
+  { id: 'master', label: 'Master', category: 'power' },
+  { id: 'slave', label: 'Slave', category: 'power' },
+  { id: 'cuckold', label: 'Cuckold', category: 'group' },
+  { id: 'hotwife', label: 'Hotwife', category: 'group' },
+  { id: 'group_play', label: 'Group Play', category: 'group' },
+  { id: 'threesome', label: 'Threesome', category: 'group' },
+  { id: 'orgy', label: 'Orgy', category: 'group' },
+  { id: 'swinger', label: 'Swinger', category: 'group' },
+  { id: 'voyeur', label: 'Voyeur', category: 'exhibitionism' },
+  { id: 'exhibitionist', label: 'Exhibitionist', category: 'exhibitionism' },
+  { id: 'public_play', label: 'Public Play', category: 'exhibitionism' },
+  { id: 'sadist', label: 'Sadist', category: 'intensity' },
+  { id: 'masochist', label: 'Masochist', category: 'intensity' },
+  { id: 'primal', label: 'Primal', category: 'intensity' },
+  { id: 'degradation', label: 'Degradation', category: 'intensity' },
+  { id: 'praise', label: 'Praise Kink', category: 'intensity' },
+  { id: 'edging', label: 'Edging', category: 'sensual' },
+  { id: 'tantric', label: 'Tantric', category: 'sensual' },
+  { id: 'sensory', label: 'Sensory Play', category: 'sensual' },
+  { id: 'wax_play', label: 'Wax Play', category: 'sensual' },
+  { id: 'impact_play', label: 'Impact Play', category: 'intensity' },
+  { id: 'spanking', label: 'Spanking', category: 'intensity' },
+  { id: 'age_play', label: 'Age Play', category: 'roleplay' },
+  { id: 'breeding', label: 'Breeding', category: 'kink' },
+  { id: 'feet', label: 'Feet', category: 'kink' },
+  { id: 'lingerie', label: 'Lingerie', category: 'aesthetic' },
+  { id: 'crossdressing', label: 'Crossdressing', category: 'aesthetic' },
 ];
 
 const CONNECTED_APPS = [
@@ -75,7 +134,7 @@ export const EditProfileScreen: React.FC = () => {
 
   // Form state initialized with user data
   const [photos, setPhotos] = useState<string[]>(
-    user?.photos || ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop']
+    user?.photos || ['https://images.unsplash.com/photo-1618077360395-f3068be8e001?w=400&h=600&fit=crop']
   );
   const [bio, setBio] = useState(user?.bio || '');
   const [interests, setInterests] = useState<string[]>(user?.interests || []);
@@ -94,8 +153,12 @@ export const EditProfileScreen: React.FC = () => {
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [showOpeningMoveModal, setShowOpeningMoveModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showOrientationModal, setShowOrientationModal] = useState(false);
+  const [showTagsModal, setShowTagsModal] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<typeof PROFILE_PROMPTS[0] | null>(null);
   const [promptAnswer, setPromptAnswer] = useState('');
+  const [selectedOrientation, setSelectedOrientation] = useState<string>(user?.orientation || '');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // Calculate profile strength
   const profileStrength = useMemo(() => {
@@ -232,6 +295,15 @@ export const EditProfileScreen: React.FC = () => {
     );
   };
 
+  const toggleTag = (tagId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedTags(prev =>
+      prev.includes(tagId)
+        ? prev.filter(t => t !== tagId)
+        : [...prev, tagId]
+    );
+  };
+
   const handleConnectApp = (appId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setConnectedApps(prev =>
@@ -252,13 +324,15 @@ export const EditProfileScreen: React.FC = () => {
       photos,
       bio,
       interests,
+      orientation: selectedOrientation,
+      tags: selectedTags,
       preferences: { ageRange, maxDistance },
     });
 
     setSaving(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     navigation.goBack();
-  }, [photos, bio, interests, ageRange, maxDistance, updateUser, navigation]);
+  }, [photos, bio, interests, ageRange, maxDistance, selectedOrientation, selectedTags, updateUser, navigation]);
 
   const renderPromptModal = (isOpeningMove: boolean = false) => (
     <Modal
@@ -373,6 +447,141 @@ export const EditProfileScreen: React.FC = () => {
       </SafeAreaView>
     </Modal>
   );
+
+  const renderOrientationModal = () => (
+    <Modal
+      visible={showOrientationModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setShowOrientationModal(false)}
+    >
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <Pressable onPress={() => setShowOrientationModal(false)}>
+            <Ionicons name="close" size={28} color={colors.text} />
+          </Pressable>
+          <Text style={styles.modalTitle}>Sexual Orientation</Text>
+          <Pressable onPress={() => setShowOrientationModal(false)}>
+            <Text style={styles.doneButton}>Done</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView style={styles.orientationListContainer}>
+          {SEXUAL_ORIENTATIONS.map(orientation => (
+            <Pressable
+              key={orientation}
+              style={[
+                styles.orientationOption,
+                selectedOrientation === orientation && styles.orientationOptionSelected,
+              ]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSelectedOrientation(orientation);
+              }}
+            >
+              <View style={styles.orientationOptionContent}>
+                <View style={[
+                  styles.orientationIconBg,
+                  selectedOrientation === orientation && styles.orientationIconBgSelected,
+                ]}>
+                  <Ionicons
+                    name="heart"
+                    size={18}
+                    color={selectedOrientation === orientation ? '#fff' : '#FF9800'}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.orientationOptionText,
+                    selectedOrientation === orientation && styles.orientationOptionTextSelected,
+                  ]}
+                >
+                  {orientation}
+                </Text>
+              </View>
+              {selectedOrientation === orientation && (
+                <Ionicons name="checkmark-circle" size={24} color="#FF9800" />
+              )}
+            </Pressable>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+
+  const renderTagsModal = () => {
+    const groupedTags = FETISH_TAGS.reduce((acc, tag) => {
+      if (!acc[tag.category]) {
+        acc[tag.category] = [];
+      }
+      acc[tag.category].push(tag);
+      return acc;
+    }, {} as Record<string, typeof FETISH_TAGS>);
+
+    const categoryLabels: Record<string, string> = {
+      power: 'Power Dynamics',
+      kink: 'Kink & BDSM',
+      roleplay: 'Role Play',
+      group: 'Group Activities',
+      exhibitionism: 'Exhibitionism',
+      intensity: 'Intensity',
+      sensual: 'Sensual',
+      aesthetic: 'Aesthetic',
+    };
+
+    return (
+      <Modal
+        visible={showTagsModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowTagsModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Pressable onPress={() => setShowTagsModal(false)}>
+              <Ionicons name="close" size={28} color={colors.text} />
+            </Pressable>
+            <Text style={styles.modalTitle}>Select Your Tags</Text>
+            <Pressable onPress={() => setShowTagsModal(false)}>
+              <Text style={styles.doneButton}>Done</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.tagsListContainer}>
+            {Object.entries(groupedTags).map(([category, tags]) => (
+              <View key={category} style={styles.tagsCategoryContainer}>
+                <Text style={styles.tagsCategoryTitle}>{categoryLabels[category] || category}</Text>
+                <View style={styles.tagsChipsContainer}>
+                  {tags.map(tag => (
+                    <Pressable
+                      key={tag.id}
+                      style={[
+                        styles.tagChip,
+                        selectedTags.includes(tag.id) && styles.tagChipSelected,
+                      ]}
+                      onPress={() => toggleTag(tag.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.tagChipText,
+                          selectedTags.includes(tag.id) && styles.tagChipTextSelected,
+                        ]}
+                      >
+                        {tag.label}
+                      </Text>
+                      {selectedTags.includes(tag.id) && (
+                        <Ionicons name="checkmark-circle" size={16} color={colors.primary} style={{ marginLeft: 4 }} />
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -497,6 +706,44 @@ export const EditProfileScreen: React.FC = () => {
               style={styles.bioInput}
             />
             <Text style={styles.charCount}>{bio.length}/500 characters</Text>
+          </Animated.View>
+
+          {/* Sexual Orientation Section */}
+          <Animated.View entering={FadeInUp.delay(175)} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>Sexual Orientation</Text>
+                <Text style={styles.sectionSubtitle}>
+                  {selectedOrientation || 'Not selected'}
+                </Text>
+              </View>
+              <Pressable
+                style={styles.expandButton}
+                onPress={() => setShowOrientationModal(true)}
+              >
+                <Text style={styles.expandButtonText}>
+                  {selectedOrientation ? 'Change' : 'Select'}
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+              </Pressable>
+            </View>
+
+            {selectedOrientation ? (
+              <View style={styles.orientationChipContainer}>
+                <View style={styles.selectedOrientationChip}>
+                  <Ionicons name="heart" size={16} color="#fff" style={{ marginRight: 6 }} />
+                  <Text style={styles.selectedOrientationText}>{selectedOrientation}</Text>
+                </View>
+              </View>
+            ) : (
+              <Pressable
+                style={styles.emptyOrientationCard}
+                onPress={() => setShowOrientationModal(true)}
+              >
+                <Ionicons name="heart-circle-outline" size={32} color="#FF9800" />
+                <Text style={styles.emptyOrientationText}>Select your sexual orientation</Text>
+              </Pressable>
+            )}
           </Animated.View>
 
           {/* More About You - Prompts Section */}
@@ -627,6 +874,48 @@ export const EditProfileScreen: React.FC = () => {
                 </View>
               ))}
             </View>
+          </Animated.View>
+
+          {/* Tags Section */}
+          <Animated.View entering={FadeInUp.delay(325)} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>Your Tags</Text>
+                <Text style={styles.sectionSubtitle}>
+                  {selectedTags.length > 0 ? `${selectedTags.length} tag${selectedTags.length !== 1 ? 's' : ''} selected` : 'Select tags that describe you'}
+                </Text>
+              </View>
+              <Pressable
+                style={styles.expandButton}
+                onPress={() => setShowTagsModal(true)}
+              >
+                <Text style={styles.expandButtonText}>
+                  {selectedTags.length > 0 ? 'Edit' : 'Add'}
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+              </Pressable>
+            </View>
+
+            {selectedTags.length > 0 ? (
+              <View style={styles.tagsChipsContainer}>
+                {selectedTags.map(tagId => {
+                  const tag = FETISH_TAGS.find(t => t.id === tagId);
+                  return tag ? (
+                    <View key={tagId} style={styles.selectedTagChip}>
+                      <Text style={styles.selectedTagText}>{tag.label}</Text>
+                    </View>
+                  ) : null;
+                })}
+              </View>
+            ) : (
+              <Pressable
+                style={styles.emptyTagsCard}
+                onPress={() => setShowTagsModal(true)}
+              >
+                <Ionicons name="pricetags-outline" size={32} color={colors.primary} />
+                <Text style={styles.emptyTagsText}>Add tags to express yourself</Text>
+              </Pressable>
+            )}
           </Animated.View>
 
           {/* Interests Section */}
@@ -794,6 +1083,8 @@ export const EditProfileScreen: React.FC = () => {
       {renderPromptModal(false)}
       {renderPromptModal(true)}
       {renderLanguageModal()}
+      {renderOrientationModal()}
+      {renderTagsModal()}
     </View>
   );
 };
@@ -1295,5 +1586,156 @@ const styles = StyleSheet.create({
   languageOptionTextSelected: {
     fontWeight: fontWeight.semibold,
     color: colors.primary,
+  },
+  // Orientation Styles
+  orientationChipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  selectedOrientationChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 152, 0, 0.3)',
+    borderColor: '#FF9800',
+    borderWidth: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.full,
+  },
+  selectedOrientationText: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: '#fff',
+  },
+  emptyOrientationCard: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 152, 0, 0.3)',
+    borderStyle: 'dashed',
+  },
+  emptyOrientationText: {
+    fontSize: fontSize.md,
+    color: '#FF9800',
+    marginTop: spacing.md,
+    textAlign: 'center',
+  },
+  orientationListContainer: {
+    flex: 1,
+    padding: spacing.lg,
+  },
+  orientationOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  orientationOptionSelected: {
+    borderWidth: 2,
+    borderColor: '#FF9800',
+    backgroundColor: 'rgba(255, 152, 0, 0.08)',
+  },
+  orientationOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  orientationIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 152, 0, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  orientationIconBgSelected: {
+    backgroundColor: '#FF9800',
+  },
+  orientationOptionText: {
+    fontSize: fontSize.md,
+    color: colors.text,
+  },
+  orientationOptionTextSelected: {
+    fontWeight: fontWeight.semibold,
+    color: '#FF9800',
+  },
+  // Tags Styles
+  tagsListContainer: {
+    flex: 1,
+    padding: spacing.lg,
+  },
+  tagsCategoryContainer: {
+    marginBottom: spacing.xl,
+  },
+  tagsCategoryTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+    marginBottom: spacing.md,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tagsChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tagChipSelected: {
+    backgroundColor: colors.primary + '15',
+    borderColor: colors.primary,
+  },
+  tagChipText: {
+    fontSize: fontSize.sm,
+    color: colors.text,
+    fontWeight: fontWeight.medium,
+  },
+  tagChipTextSelected: {
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
+  },
+  selectedTagChip: {
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  selectedTagText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
+  },
+  emptyTagsCard: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.primary + '30',
+    borderStyle: 'dashed',
+  },
+  emptyTagsText: {
+    fontSize: fontSize.md,
+    color: colors.primary,
+    marginTop: spacing.md,
+    textAlign: 'center',
   },
 });

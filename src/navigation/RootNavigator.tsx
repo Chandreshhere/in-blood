@@ -50,10 +50,14 @@ export const RootNavigator: React.FC = () => {
   const { isAuthenticated, hasCompletedOnboarding, hasCompletedProfileSetup } = useAuth();
 
   const getInitialRoute = (): keyof RootStackParamList => {
-    if (!hasCompletedOnboarding) return 'Onboarding';
-    if (!isAuthenticated) return 'Auth';
-    if (!hasCompletedProfileSetup) return 'ProfileSetup';
+    // TEMPORARY: Skip onboarding/auth for development
     return 'MainTabs';
+
+    // Original flow (commented out for development)
+    // if (!hasCompletedOnboarding) return 'Onboarding';
+    // if (!isAuthenticated) return 'Auth';
+    // if (!hasCompletedProfileSetup) return 'ProfileSetup';
+    // return 'MainTabs';
   };
 
   return (

@@ -45,29 +45,30 @@ const CELL_HEIGHT = CARD_HEIGHT + CARD_GAP;
 const GRID_CYCLE_WIDTH = CELL_WIDTH * NUM_COLUMNS;
 const GRID_CYCLE_HEIGHT = CELL_HEIGHT * NUM_ROWS;
 
-// Mock profiles - more variety
+// Mock profiles - Indian photos (alternating female/male)
 const MOCK_PROFILE_IMAGES = [
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1463453091185-61582044d556?w=400&h=600&fit=crop',
+  'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?w=400&h=600&fit=crop', // Indian woman
+  'https://images.unsplash.com/photo-1618077360395-f3068be8e001?w=400&h=600&fit=crop', // Indian man
+  'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=400&h=600&fit=crop', // Indian woman
+  'https://images.unsplash.com/photo-1615109398623-88346a601842?w=400&h=600&fit=crop', // Indian man
+  'https://images.unsplash.com/photo-1611432579699-484f7990b127?w=400&h=600&fit=crop', // Indian woman
+  'https://images.unsplash.com/photo-1583195764036-6dc248ac07d9?w=400&h=600&fit=crop', // Indian man
+  'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=400&h=600&fit=crop', // Indian woman
+  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=600&fit=crop', // Man
+  'https://images.unsplash.com/photo-1618151313441-bc79b11e5090?w=400&h=600&fit=crop', // Indian woman
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop', // Man
+  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=600&fit=crop', // Professional woman
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=600&fit=crop', // Man
+  'https://images.unsplash.com/photo-1596815064285-45ed8a9c0463?w=400&h=600&fit=crop', // Indian woman
+  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=600&fit=crop', // Man
+  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=600&fit=crop', // Woman
 ];
 
+// Names matching image order (female/male alternating)
 const NAMES = [
-  'Priya', 'Rahul', 'Ananya', 'Vikram', 'Ishita', 'Arjun', 'Kavya', 'Aditya',
-  'Shreya', 'Rohan', 'Neha', 'Karan', 'Pooja', 'Varun', 'Riya', 'Siddharth',
-  'Divya', 'Nikhil', 'Tanya', 'Amit', 'Meera', 'Raj', 'Nisha', 'Dev',
+  'Priya', 'Arjun', 'Ananya', 'Rohan', 'Ishita', 'Vikram', 'Kavya', 'Aditya',
+  'Shreya', 'Karan', 'Riya', 'Siddharth', 'Meera', 'Dev', 'Tanvi', 'Rahul',
+  'Nisha', 'Varun', 'Pooja', 'Amit', 'Divya', 'Kabir', 'Neha', 'Dhruv',
 ];
 
 const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Pune', 'Jaipur', 'Hyderabad'];
@@ -257,7 +258,8 @@ const ProfileCard: React.FC<{
         resizeMode="cover"
       />
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.8)']}
+        colors={['transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.95)']}
+        locations={[0, 0.5, 1]}
         style={styles.cardGradient}
       >
         <Text style={styles.cardName} numberOfLines={1}>{profile.name}</Text>
@@ -400,7 +402,6 @@ export const GalleryDiscoverScreen: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('All');
 
   // Preload images on mount
   useEffect(() => {
@@ -476,23 +477,6 @@ export const GalleryDiscoverScreen: React.FC = () => {
           </Animated.View>
         )}
 
-        {/* Quick Filters */}
-        <Animated.View entering={FadeIn.delay(200)} style={styles.quickFiltersContainer}>
-          {['All', 'Online', 'Verified', 'New', 'Nearby'].map((filter) => (
-            <Pressable
-              key={filter}
-              style={[styles.quickFilterChip, activeFilter === filter && styles.quickFilterChipActive]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setActiveFilter(filter);
-              }}
-            >
-              <Text style={[styles.quickFilterText, activeFilter === filter && styles.quickFilterTextActive]}>
-                {filter}
-              </Text>
-            </Pressable>
-          ))}
-        </Animated.View>
       </SafeAreaView>
 
       {/* Infinite 360 Grid */}
@@ -816,33 +800,9 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.text,
   },
-  quickFiltersContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-    gap: spacing.sm,
-  },
-  quickFilterChip: {
-    paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: borderRadius.full,
-  },
-  quickFilterChipActive: {
-    backgroundColor: colors.primary,
-  },
-  quickFilterText: {
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    fontWeight: fontWeight.medium,
-  },
-  quickFilterTextActive: {
-    color: colors.text,
-  },
   gridWrapper: {
     flex: 1,
     overflow: 'hidden',
-    marginHorizontal: spacing.md,
   },
   gridContainer: {
     position: 'absolute',

@@ -13,6 +13,8 @@ interface MatchesContextType {
   dismissMatchNotification: () => void;
   getAvailableProfiles: () => Profile[];
   undoLastSwipe: () => void;
+  createMatchForProfile: (profileData: Partial<Profile>) => Match;
+  findMatchByName: (name: string) => Match | undefined;
 }
 
 const MatchesContext = createContext<MatchesContextType | undefined>(undefined);
@@ -91,6 +93,46 @@ export const MatchesProvider: React.FC<{ children: ReactNode }> = ({ children })
     setLastSwipe(null);
   }, [lastSwipe]);
 
+  // Find a match by profile name
+  const findMatchByName = useCallback((name: string): Match | undefined => {
+    return matches.find(m => m.profile.name === name);
+  }, [matches]);
+
+  // Create a match for a profile (used when sending compliments from stories)
+  const createMatchForProfile = useCallback((profileData: Partial<Profile>): Match => {
+    // Check if match already exists
+    const existingMatch = matches.find(m =>
+      m.profile.name === profileData.name || m.profile.id === profileData.id
+    );
+    if (existingMatch) return existingMatch;
+
+    // Create a full profile from partial data
+    const fullProfile: Profile = {
+      id: profileData.id || `profile-${Date.now()}`,
+      name: profileData.name || 'Unknown',
+      age: profileData.age || 25,
+      gender: profileData.gender || 'female',
+      interestedIn: profileData.interestedIn || ['male'],
+      photos: profileData.photos || [],
+      bio: profileData.bio || '',
+      interests: profileData.interests || [],
+      location: profileData.location || { city: 'Mumbai' },
+      preferences: profileData.preferences || { ageRange: { min: 18, max: 40 }, maxDistance: 25 },
+      verified: profileData.verified ?? true,
+      ...profileData,
+    };
+
+    const newMatch: Match = {
+      id: `match-${Date.now()}`,
+      matchedAt: new Date(),
+      profile: fullProfile,
+      unreadCount: 0,
+    };
+
+    setMatches(prev => [newMatch, ...prev]);
+    return newMatch;
+  }, [matches]);
+
   return (
     <MatchesContext.Provider
       value={{
@@ -104,6 +146,8 @@ export const MatchesProvider: React.FC<{ children: ReactNode }> = ({ children })
         dismissMatchNotification,
         getAvailableProfiles,
         undoLastSwipe,
+        createMatchForProfile,
+        findMatchByName,
       }}
     >
       {children}
